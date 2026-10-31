@@ -1,0 +1,26 @@
+{
+  "niche": "photography",
+  "hashtags": ["photography"],
+  "session": {
+    "maxViews": 3,
+    "maxLikes": 1,
+    "maxDurationMin": 15
+  },
+  "daily": {
+    "maxViews": 60,
+    "maxLikes": 12
+  },
+  "pacing": {
+    "actionGapMedianMs": 7000,
+    "dwellMedianMs": 9000,
+    "sigma": 0.7,
+    "idleChance": 0.05,
+    "idleMedianMs": 45000,
+    "idleMinMs": 20000,
+    "idleMaxMs": 150000
+  },
+  "jev": {
+    "model": "jev-latest",
+    "escalateBelowConfidence": 0.55
+  }
+}

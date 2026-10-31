@@ -1,3 +1,14 @@
+# InstaPy Reborn
+
+This fork is being rebuilt from scratch as a **desktop app** (`app/`): instead of
+Selenium and XPath banks that rot, a real logged-in browser session (ego lite) is
+driven through a decision layer — deterministic quota/memory rules first, then
+Jev (System One) typed decisions with calibrated probabilities, LLM escalation
+for unknown screens, and human-distribution pacing. Every action is verified and
+logged. See [`app/README.md`](app/README.md) for architecture and usage.
+
+---
+
 <p><b>After Tim got banned by Meta for creating InstaPy and teaching 100K+ people how to automate social media, he now focuses on other areas away from Social Media.</p>
 </p>If you want real growth without risking your account:</p>
 

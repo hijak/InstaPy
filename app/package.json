@@ -1,0 +1,13 @@
+{
+  "name": "instapy-reborn",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "InstaPy Reborn — a human-paced Instagram session harness driven by ego-browser and Jev decisions",
+  "bin": {
+    "instapy-session": "bin/session.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
