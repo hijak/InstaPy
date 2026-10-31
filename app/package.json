@@ -5,7 +5,12 @@
   "type": "module",
   "description": "InstaPy Reborn — a human-paced Instagram session harness driven by ego-browser and Jev decisions",
   "bin": {
-    "instapy-session": "bin/session.js"
+    "instapy-session": "bin/session.js",
+    "instapy-serve": "bin/serve.js"
+  },
+  "scripts": {
+    "serve": "node bin/serve.js",
+    "check-llm": "node bin/llm-check.js"
   },
   "engines": {
     "node": ">=18"

@@ -30,6 +30,27 @@ Design invariants:
 4. **Human pacing is distributional, not uniform.** Log-normal dwell times,
    occasional 20–150s idles, view-many/act-few asymmetry.
 
+## Control panel (web UI)
+
+```bash
+node bin/serve.js          # → http://127.0.0.1:7788 (localhost only)
+```
+
+A zero-dependency local control panel for everything a run can do:
+
+- **status chips** — run state, challenge breaker, resolved LLM, today's quota usage
+- **run controls** — start/stop a session with overrides (dry run default, view/like
+  budgets, tag override, start jitter)
+- **config editor** — niche, hashtags, session budgets, daily caps, human pacing
+  distribution, Jev escalation threshold, breaker cooldown — validated server-side
+  and written to `config.json`
+- **live console** — session output and the event log, streamed over SSE
+- **LLM test** button — tiny live round-trip through the configured provider
+
+`POST /api/breaker/clear` exists but is intentionally not a button in the UI:
+clearing a challenge breaker should be a deliberate act (curl it or delete
+`app/data/breaker.json`).
+
 ## Usage
 
 Prereqs: [ego lite](https://github.com/InstaPy/InstaPy#readme) installed and

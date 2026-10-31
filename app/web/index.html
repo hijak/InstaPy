@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>InstaPy Reborn — Control Panel</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1d212b; --line: #2a2f3c;
+    --text: #e6e9f0; --muted: #8b93a7; --accent: #5b9dff; --ok: #3ecf8e;
+    --warn: #e8b549; --bad: #ff6b6b;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-size: 14px; }
+  header { padding: 14px 20px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; background: var(--panel); border: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+  .chip b { color: var(--text); font-weight: 600; }
+  .chip.ok b { color: var(--ok); } .chip.warn b { color: var(--warn); } .chip.bad b { color: var(--bad); }
+  main { display: grid; grid-template-columns: 380px 1fr; gap: 16px; padding: 16px 20px; max-width: 1400px; margin: 0 auto; }
+  @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  section h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 12px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px 12px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+  input[type=text], input[type=number] {
+    width: 100%; padding: 7px 9px; background: var(--panel2); color: var(--text);
+    border: 1px solid var(--line); border-radius: 6px; font-size: 13px; outline: none;
+  }
+  input:focus { border-color: var(--accent); }
+  .row { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  button {
+    padding: 7px 14px; border-radius: 6px; border: 1px solid var(--line); cursor: pointer;
+    background: var(--panel2); color: var(--text); font-size: 13px;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.danger { background: transparent; border-color: var(--bad); color: var(--bad); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .hint { font-size: 11px; color: var(--muted); margin-top: 8px; }
+  .check { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); }
+  #console {
+    background: #0b0d11; border: 1px solid var(--line); border-radius: 8px; padding: 10px;
+    height: 260px; overflow-y: auto; font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; color: var(--muted); font-weight: 500; padding: 4px 8px; border-bottom: 1px solid var(--line); }
+  td { padding: 4px 8px; border-bottom: 1px solid var(--panel2); vertical-align: top; }
+  td.mono { font: 11px ui-monospace, Menlo, monospace; color: var(--muted); }
+  .toast { position: fixed; bottom: 18px; right: 18px; background: var(--panel2); border: 1px solid var(--line);
+    border-radius: 8px; padding: 10px 14px; font-size: 13px; display: none; max-width: 420px; }
+  .toast.err { border-color: var(--bad); color: var(--bad); }
+  .toast.ok { border-color: var(--ok); color: var(--ok); }
+  .spacer { flex: 1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>InstaPy Reborn</h1>
+  <span class="chip" id="chip-run">run <b>idle</b></span>
+  <span class="chip" id="chip-breaker">breaker <b>—</b></span>
+  <span class="chip" id="chip-llm">llm <b>—</b></span>
+  <span class="chip" id="chip-today">today <b>—</b></span>
+  <span class="spacer"></span>
+  <button id="btn-llm-test">test llm</button>
+</header>
+
+<main>
+  <div>
+    <section>
+      <h2>Run</h2>
+      <div class="grid2">
+        <div><label>max views (override)</label><input type="number" id="run-views" placeholder="config default"></div>
+        <div><label>max likes (override)</label><input type="number" id="run-likes" placeholder="config default"></div>
+        <div><label>tag override</label><input type="text" id="run-tag" placeholder="rotate daily"></div>
+        <div><label>jitter minutes</label><input type="number" id="run-jitter" value="0" min="0" max="120"></div>
+      </div>
+      <div class="row">
+        <label class="check"><input type="checkbox" id="run-dry" checked> dry run (browse &amp; decide, never like)</label>
+        <span class="spacer"></span>
+        <button class="primary" id="btn-start">start session</button>
+        <button class="danger" id="btn-stop">stop</button>
+      </div>
+      <div class="hint">Dry run is the default. Live sessions are still bounded by the daily caps below.</div>
+    </section>
+
+    <section style="margin-top:16px">
+      <h2>Config</h2>
+      <label>niche</label>
+      <input type="text" id="c-niche">
+      <div style="margin-top:10px"><label>hashtags (comma separated, rotate daily)</label>
+      <input type="text" id="c-hashtags"></div>
+
+      <h2 style="margin-top:16px">Session budgets</h2>
+      <div class="grid3">
+        <div><label>max views</label><input type="number" id="c-session.maxViews"></div>
+        <div><label>max likes</label><input type="number" id="c-session.maxLikes"></div>
+        <div><label>duration min</label><input type="number" id="c-session.maxDurationMin"></div>
+      </div>
+
+      <h2 style="margin-top:16px">Daily caps</h2>
+      <div class="grid2">
+        <div><label>max views / day</label><input type="number" id="c-daily.maxViews"></div>
+        <div><label>max likes / day</label><input type="number" id="c-daily.maxLikes"></div>
+      </div>
+
+      <h2 style="margin-top:16px">Human pacing</h2>
+      <div class="grid3">
+        <div><label>action gap median ms</label><input type="number" id="c-pacing.actionGapMedianMs"></div>
+        <div><label>dwell median ms</label><input type="number" id="c-pacing.dwellMedianMs"></div>
+        <div><label>log-normal sigma</label><input type="number" step="0.05" id="c-pacing.sigma"></div>
+        <div><label>idle chance (0-0.3)</label><input type="number" step="0.01" id="c-pacing.idleChance"></div>
+        <div><label>idle median ms</label><input type="number" id="c-pacing.idleMedianMs"></div>
+        <div><label>idle min / max ms</label>
+          <div class="grid2">
+            <input type="number" id="c-pacing.idleMinMs">
+            <input type="number" id="c-pacing.idleMaxMs">
+          </div>
+        </div>
+      </div>
+
+      <h2 style="margin-top:16px">Decisions &amp; safety</h2>
+      <div class="grid3">
+        <div><label>jev model</label><input type="text" id="c-jev.model"></div>
+        <div><label>escalate below confidence</label><input type="number" step="0.05" id="c-jev.escalateBelowConfidence"></div>
+        <div><label>breaker cooldown hours</label><input type="number" id="c-breaker.challengeCooldownHours"></div>
+      </div>
+
+      <div class="row">
+        <button class="primary" id="btn-save">save config</button>
+        <button id="btn-reload">revert</button>
+      </div>
+      <div class="hint">Values are validated server-side and written to config.json. Daily caps always bound scheduled sessions too.</div>
+    </section>
+  </div>
+
+  <div>
+    <section>
+      <h2>Live console</h2>
+      <div id="console"></div>
+    </section>
+    <section style="margin-top:16px">
+      <h2>Recent events</h2>
+      <table>
+        <thead><tr><th style="width:150px">time</th><th style="width:90px">type</th><th>detail</th></tr></thead>
+        <tbody id="events-body"></tbody>
+      </table>
+    </section>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const CONFIG_FIELDS = [
+  "niche", "session.maxViews", "session.maxLikes", "session.maxDurationMin",
+  "daily.maxViews", "daily.maxLikes",
+  "pacing.actionGapMedianMs", "pacing.dwellMedianMs", "pacing.sigma",
+  "pacing.idleChance", "pacing.idleMedianMs", "pacing.idleMinMs", "pacing.idleMaxMs",
+  "jev.model", "jev.escalateBelowConfidence", "breaker.challengeCooldownHours",
+];
+const NUMERIC_FIELDS = CONFIG_FIELDS.filter((f) => f.includes("."));
+
+let toastTimer;
+function toast(msg, cls) {
+  const el = $("toast");
+  el.textContent = msg;
+  el.className = "toast show " + (cls ?? "");
+  el.style.display = "block";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (el.style.display = "none"), 3500);
+}
+
+async function api(path, body) {
+  const res = await fetch(path, body
+    ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+    : {});
+  const data = await res.json().catch(() => ({ ok: false, error: res.statusText }));
+  if (!res.ok || data.ok === false) throw new Error(data.error ?? res.statusText);
+  return data;
+}
+
+function setField(key, value) {
+  const el = $("c-" + key);
+  if (!el) return;
+  el.value = value ?? "";
+}
+
+function renderState(s) {
+  // chips
+  const run = s.run;
+  $("chip-run").innerHTML = run?.running
+    ? `run <b>${run.dry ? "dry" : "LIVE"} pid ${run.pid}</b>`
+    : "run <b>idle</b>";
+  $("chip-run").className = "chip " + (run?.running ? (run.dry ? "" : "bad") : "ok");
+  const br = s.breaker;
+  $("chip-breaker").innerHTML = br?.open ? `breaker <b>OPEN → ${br.until.slice(0, 16)}</b>` : "breaker <b>clear</b>";
+  $("chip-breaker").className = "chip " + (br?.open ? "bad" : "ok");
+  $("chip-breaker").title = br?.open ? br.reason : "";
+  const llm = s.llm;
+  $("chip-llm").innerHTML = llm ? `llm <b>${llm.provider}/${llm.model} (${llm.authMode})</b>` : "llm <b>not configured</b>";
+  $("chip-llm").className = "chip " + (llm ? "ok" : "warn");
+  const d = s.config.daily;
+  $("chip-today").innerHTML = `today <b>${s.today.views}/${d.maxViews} views · ${s.today.likes}/${d.maxLikes} likes</b>`;
+
+  $("btn-start").disabled = !!run?.running;
+  $("btn-stop").disabled = !run?.running;
+
+  // config inputs
+  setField("niche", s.config.niche);
+  setField("hashtags", (s.config.hashtags ?? []).join(", "));
+  for (const f of NUMERIC_FIELDS) {
+    const [a, b] = f.split(".");
+    setField(f, s.config[a]?.[b]);
+  }
+  // console replay
+  if ($("console").childElementCount === 0) for (const line of s.console) addConsole(line);
+  // events
+  $("events-body").innerHTML = s.events.map(eventRow).join("");
+}
+
+function eventRow(e) {
+  const detail =
+    e.type === "decision" ? `${e.decision}: ${e.choice ?? e.finalDecision ?? ""} conf ${e.confidence ?? "—"}${e.spam != null ? " spam " + e.spam : ""}${e.escalated ? " ↑" + (e.escalationUsed ?? "") : ""}`
+    : e.type === "view" ? `${e.postId} by @${e.author ?? "?"}`
+    : e.type === "engage" ? `${e.decision} → ${e.result ?? ""} ${e.reason ?? ""} ${e.postId ?? ""}`
+    : e.type === "session" ? `${e.event} ${e.views != null ? `views ${e.views}, likes ${e.likes}` : ""}`
+    : e.type === "escalation" ? `${e.stage}: ${e.decision ?? e.screen ?? e.error ?? ""}`
+    : Object.entries(e).filter(([k]) => !["ts", "type"].includes(k)).map(([k, v]) => `${k}=${typeof v === "object" ? JSON.stringify(v) : v}`).join(" ");
+  return `<tr><td class="mono">${(e.ts ?? "").replace("T", " ").slice(0, 19)}</td><td>${e.type}</td><td>${escapeHtml(String(detail))}</td></tr>`;
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+function addConsole(line) {
+  const el = $("console");
+  const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 4;
+  el.textContent += line + "\n";
+  while (el.textContent.split("\n").length > 400) el.textContent = el.textContent.split("\n").slice(1).join("\n");
+  if (atBottom) el.scrollTop = el.scrollHeight;
+}
+
+async function refresh() {
+  try {
+    renderState(await api("/api/state"));
+  } catch (e) {
+    toast("state fetch failed: " + e.message, "err");
+  }
+}
+
+$("btn-save").onclick = async () => {
+  const patch = { niche: $("c-niche").value, hashtags: $("c-hashtags").value.split(",").map((t) => t.trim()).filter(Boolean) };
+  for (const f of NUMERIC_FIELDS) {
+    const [a, b] = f.split(".");
+    (patch[a] ??= {})[b] = Number($("c-" + f).value);
+  }
+  try {
+    const { config } = await api("/api/config", patch);
+    toast("config saved", "ok");
+    renderState(await api("/api/state"));
+  } catch (e) {
+    toast("save failed: " + e.message, "err");
+  }
+};
+$("btn-reload").onclick = refresh;
+
+$("btn-start").onclick = async () => {
+  const body = { dry: $("run-dry").checked, jitterMinutes: Number($("run-jitter").value) || 0 };
+  if ($("run-views").value) body.maxViews = Number($("run-views").value);
+  if ($("run-likes").value) body.maxLikes = Number($("run-likes").value);
+  if ($("run-tag").value) body.tag = $("run-tag").value;
+  try {
+    await api("/api/run", body);
+    toast("session starting" + (body.dry ? " (dry)" : ""), "ok");
+    $("console").textContent = "";
+    refresh();
+  } catch (e) {
+    toast(e.message, "err");
+  }
+};
+$("btn-stop").onclick = () => api("/api/stop").then(() => toast("stopping…", "ok")).catch((e) => toast(e.message, "err"));
+
+$("btn-llm-test").onclick = async () => {
+  $("btn-llm-test").disabled = true;
+  $("btn-llm-test").textContent = "testing…";
+  try {
+    const r = await api("/api/llm/test");
+    toast(r.ok ? `LLM replied "${r.reply}" in ${r.ms}ms` : r.error, r.ok ? "ok" : "err");
+  } catch (e) {
+    toast(e.message, "err");
+  } finally {
+    $("btn-llm-test").disabled = false;
+    $("btn-llm-test").textContent = "test llm";
+  }
+};
+
+// breaker clear: not exposed as a button — deliberate friction. Use:
+//   fetch('/api/breaker/clear', {method:'POST'}) from the console if you
+//   really mean it (or delete app/data/breaker.json).
+
+const es = new EventSource("/api/stream");
+es.onmessage = (m) => {
+  const msg = JSON.parse(m.data);
+  if (msg.kind === "out") addConsole(msg.line);
+  else if (msg.kind === "event" && msg.event?.type !== "run-start" && msg.event?.type !== "run-end") {
+    const tbody = $("events-body");
+    tbody.insertAdjacentHTML("afterbegin", eventRow(msg.event));
+    while (tbody.childElementCount > 60) tbody.deleteRow(-1);
+  } else if (msg.kind === "run-start" || msg.kind === "run-end") {
+    refresh();
+  }
+};
+
+refresh();
+</script>
+</body>
+</html>

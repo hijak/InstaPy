@@ -1,6 +1,8 @@
 {
   "niche": "photography",
-  "hashtags": ["photography"],
+  "hashtags": [
+    "photography"
+  ],
   "session": {
     "maxViews": 3,
     "maxLikes": 1,
