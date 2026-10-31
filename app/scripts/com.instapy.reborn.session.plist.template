@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.instapy.reborn.session</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__NODE__</string>
+    <string>__APP_DIR__/bin/session.js</string>
+    <string>--jitter-minutes</string>
+    <string>20</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>__EGO_PATH__:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>INSTAPY_DATA</key>
+    <string>__APP_DIR__/data</string>
+  </dict>
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict>
+      <key>Hour</key>
+      <integer>10</integer>
+      <key>Minute</key>
+      <integer>7</integer>
+    </dict>
+    <dict>
+      <key>Hour</key>
+      <integer>19</integer>
+      <key>Minute</key>
+      <integer>23</integer>
+    </dict>
+  </array>
+  <key>StandardOutPath</key>
+  <string>__APP_DIR__/data/launchd.log</string>
+  <key>StandardErrorPath</key>
+  <string>__APP_DIR__/data/launchd.log</string>
+</dict>
+</plist>

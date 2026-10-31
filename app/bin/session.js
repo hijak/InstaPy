@@ -3,13 +3,17 @@
 //   node bin/session.js                    # live, bounded by config.json
 //   node bin/session.js --dry              # browses and decides, never likes
 //   node bin/session.js --max-views 2 --max-likes 1 --tag photography
+//   node bin/session.js --jitter-minutes 20   # random delayed start (for schedulers)
+// Without --tag, hashtags rotate day by day across config.hashtags.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { openHashtag, openPost, likePost, closePost } from "../src/act.js";
+import { openHashtag, openPost, likePost, closePost, pageBrief } from "../src/act.js";
 import { loadState, quotaLeft, record } from "../src/memory.js";
 import { planActionGap, sleep, lognormalMs } from "../src/pacing.js";
 import { pickPost, engage } from "../src/decide.js";
+import { status as breakerStatus, trip as tripBreaker } from "../src/breaker.js";
+import { classifyScreen } from "../src/escalate.js";
 
 const appDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const config = JSON.parse(readFileSync(path.join(appDir, "config.json"), "utf8"));
@@ -20,8 +24,25 @@ const flag = (name, fallback) => {
   return i >= 0 ? args[i + 1] : fallback;
 };
 const dryRun = args.includes("--dry");
-const tag = String(flag("tag", config.hashtags[0])).replace(/[^A-Za-z0-9_]/g, "");
 const niche = config.niche;
+
+const jitterMin = Number(flag("jitter-minutes", 0));
+if (jitterMin > 0) {
+  const wait = Math.round(Math.random() * jitterMin * 60_000);
+  console.log(`jitter: waiting ${Math.round(wait / 1000)}s before starting`);
+  await sleep(wait);
+}
+
+const breaker = breakerStatus();
+if (breaker.open) {
+  console.log(`circuit breaker open until ${breaker.until} (${breaker.reason}) — not starting`);
+  process.exit(0);
+}
+
+const tagOverride = args.includes("--tag") ? flag("tag", null) : null;
+const tag = String(
+  tagOverride ?? config.hashtags[Math.floor(Date.now() / 86_400_000) % config.hashtags.length]
+).replace(/[^A-Za-z0-9_]/g, "");
 
 const state = loadState();
 const quota = quotaLeft(state, config);
@@ -51,7 +72,14 @@ try {
     const { total } = planActionGap(config.pacing);
     await sleep(total);
 
-    const pick = await pickPost(grid.posts, { seen, tag, niche });
+    let pick;
+    try {
+      pick = await pickPost(grid.posts, { seen, tag, niche });
+    } catch (e) {
+      record({ type: "error", stage: "pick", message: String(e.message).slice(0, 300) });
+      console.error("decision layer failed — ending session");
+      break;
+    }
     if (!pick.post) {
       console.log("nothing new to view — ending session");
       break;
@@ -84,7 +112,12 @@ try {
     } else if (likes >= likeBudget) {
       verdict = { decision: "skip", reason: "like budget exhausted" };
     } else {
-      verdict = await engage(postInfo, { config, liked: state.liked, tag, niche });
+      try {
+        verdict = await engage(postInfo, { config, liked: state.liked, tag, niche });
+      } catch (e) {
+        record({ type: "error", stage: "engage", postId: pick.post, message: String(e.message).slice(0, 300) });
+        verdict = { decision: "skip", reason: "decision layer error" };
+      }
     }
 
     if (verdict.decision === "like" && !dryRun) {
@@ -94,10 +127,26 @@ try {
         record({ type: "engage", decision: "like", result: "liked", postId: pick.post });
         console.log(`  liked ${pick.post} (verified)`);
       } else {
-        // Circuit breaker: a like that fails verification means the screen is
-        // not what we think it is. End the whole session immediately.
-        record({ type: "challenge_suspected", postId: pick.post, reason: res.reason });
-        console.error(`  like verification failed (${res.reason}) — stopping session`);
+        // A like that fails verification means the screen is not what we
+        // think it is. Classify it before deciding how hard to react.
+        record({ type: "engage", decision: "like", result: "failed", postId: pick.post, reason: res.reason });
+        let screenVerdict;
+        try {
+          screenVerdict = await classifyScreen(pageBrief());
+        } catch (e) {
+          screenVerdict = { screen: "unknown", used: "error" };
+        }
+        if (screenVerdict.screen === "challenge") {
+          const b = tripBreaker(
+            config.breaker?.challengeCooldownHours ?? 48,
+            `challenge detected after like failure on ${pick.post}`
+          );
+          record({ type: "challenge_confirmed", postId: pick.post, screen: screenVerdict, breaker: b });
+          console.error(`  challenge confirmed (${screenVerdict.used}) — breaker until ${b.until}`);
+        } else {
+          record({ type: "challenge_suspected", postId: pick.post, screen: screenVerdict });
+          console.error(`  unexpected screen (${screenVerdict.screen}, ${screenVerdict.used}) — ending session`);
+        }
         closePost();
         break;
       }
@@ -110,10 +159,12 @@ try {
         confidence: verdict.confidence,
         spam: verdict.spam,
         escalated: verdict.escalated,
+        escalationUsed: verdict.escalationUsed,
         reason: verdict.reason,
       });
-      if (verdict.escalated) console.log(`  skip (low confidence ${verdict.confidence} — escalation guard)`);
-      else console.log(`  skip (${verdict.reason ?? "Jev decision"})`);
+      const bits = [verdict.reason ?? "Jev decision"];
+      if (verdict.escalated) bits.push(`escalated via ${verdict.escalationUsed ?? "n/a"}`);
+      console.log(`  skip (${bits.join("; ")})`);
     }
     closePost();
   }

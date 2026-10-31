@@ -1,8 +1,9 @@
-// Decision layer: rules first, Jev for what rules can't judge, LLM later for
-// what Jev isn't confident about. Jev never sees posts the memory gate
-// removed, and its low-confidence "like" verdicts degrade to skip (safe
-// default) until the LLM escalation hook is wired.
+// Decision layer: rules first, Jev for what rules can't judge, LLM escalation
+// for borderline calls. Jev never sees posts the memory gate removed; a
+// low-confidence "like" goes to the LLM for a second opinion when one is
+// configured, and degrades to "skip" (safe default) when none is.
 import { ask, choiceAnswer, noulAnswer } from "./jev.js";
+import { escalateEngage } from "./escalate.js";
 import { record } from "./memory.js";
 
 export async function pickPost(posts, ctx) {
@@ -52,19 +53,30 @@ export async function engage(postInfo, ctx) {
   const spam = noulAnswer(resp, "spam").noul;
 
   let decision = ans.choice;
-  let escalated = false;
+  let escalation = null;
   if (decision === "like" && (ans.confidence ?? 0) < ctx.config.jev.escalateBelowConfidence) {
-    decision = "skip";
-    escalated = true;
+    escalation = await escalateEngage(postInfo, { choice: ans.choice, confidence: ans.confidence, spam }, ctx);
+    decision = escalation.decision;
   }
+
   record({
     type: "decision",
     decision: "engage",
     choice: ans.choice,
     confidence: ans.confidence,
     spam,
-    escalated,
+    escalated: !!escalation,
+    escalationUsed: escalation?.used,
+    escalationReason: escalation?.reason,
+    finalDecision: decision,
     postId: postInfo.postId,
   });
-  return { decision, confidence: ans.confidence, spam, escalated };
+  return {
+    decision,
+    confidence: ans.confidence,
+    spam,
+    escalated: !!escalation,
+    escalationUsed: escalation?.used,
+    escalationReason: escalation?.reason,
+  };
 }

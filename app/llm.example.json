@@ -1,0 +1,29 @@
+{
+  "_readme": "Copy ONE provider setup to ~/.config/instapy/llm.json (user-level) or app/llm.local.json (project-level, gitignored). Or skip files entirely and just export ANTHROPIC_API_KEY / OPENAI_API_KEY / GEMINI_API_KEY — the provider is then inferred. Run `node bin/llm-check.js` to verify.",
+
+  "provider": "anthropic",
+  "model": "claude-3-5-haiku-latest",
+  "auth": { "mode": "api-key", "envVar": "ANTHROPIC_API_KEY", "apiKey": "sk-ant-... optional inline instead of env" },
+
+  "_oauth_google": "OAuth without any API key: log in once with `gcloud auth application-default login`, then use mode oauth-adc. The harness refreshes tokens itself via the standard OAuth refresh flow.",
+  "_oauth_adc_example": {
+    "provider": "gemini",
+    "model": "gemini-2.0-flash",
+    "auth": { "mode": "oauth-adc" }
+  },
+
+  "_oauth_bearer": "Bring-your-own OAuth bearer token (e.g. an Anthropic OAuth access token) from a JSON file containing {\"access_token\": \"...\"}:",
+  "_oauth_token_example": {
+    "provider": "anthropic",
+    "model": "claude-3-5-haiku-latest",
+    "auth": { "mode": "oauth-token", "tokenFile": "~/.config/instapy/claude-oauth.json" }
+  },
+
+  "_local": "Local keyless runtimes (Ollama, LM Studio) via the OpenAI-compatible surface:",
+  "_local_example": {
+    "provider": "openai-compatible",
+    "baseURL": "http://127.0.0.1:11434/v1",
+    "model": "llama3.2",
+    "auth": { "mode": "none" }
+  }
+}

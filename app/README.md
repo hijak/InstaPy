@@ -46,10 +46,39 @@ node bin/session.js --max-views 2 --max-likes 1 --tag photography
 All events land in `app/data/events.jsonl` (gitignored). Daily quotas count
 today's events; the session exits early once caps are hit.
 
+## LLM credentials (escalation layer)
+
+The escalation layer (borderline engage calls, screen triage) works with API
+keys or OAuth. Resolution order: `~/.config/instapy/llm.json` →
+`app/llm.local.json` (gitignored) → environment variables
+(`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY` — provider inferred).
+Supported auth modes:
+
+- **api-key** — env var, inline, or file config (see `llm.example.json`)
+- **oauth-adc** — Google Application Default Credentials: real OAuth with
+  automatic token refresh, no API key (`gcloud auth application-default login`)
+- **oauth-token** — static bearer token from a JSON file (e.g. an Anthropic
+  OAuth access token)
+- **none** — local keyless runtimes (Ollama, LM Studio) over the
+  OpenAI-compatible surface
+
+Verify with `node bin/llm-check.js`. Without an LLM configured the harness
+still runs — escalations degrade to the safe default (skip).
+
+## Scheduling (launchd)
+
+`scripts/install-launchd.sh` installs — but does not load — a LaunchAgent that
+runs two bounded sessions a day (10:07 and 19:23, with up to 20 minutes of
+start jitter so the schedule isn't metronomic). Hashtags rotate daily across
+`config.hashtags`; the daily caps in the same file always bound total activity.
+Load it with `launchctl load ~/Library/LaunchAgents/com.instapy.reborn.session.plist`
+when you're ready for unattended runs.
+
 ## Status / roadmap
 
 - [x] MVP loop: grid → Jev pick → open → dwell → Jev like/skip → verify → log
-- [ ] LLM escalation on low confidence and unknown screens
-- [ ] Challenge screen detection (device verification etc.) → 48h circuit breaker
-- [ ] Session scheduler (launchd) + multi-hashtag rotation
+- [x] LLM escalation on low confidence and unexpected screens (api-key + OAuth creds)
+- [x] Challenge triage + 48h circuit breaker (rule fast-paths + LLM classification)
+- [x] launchd scheduler + hashtag rotation + start jitter
+- [ ] Calibration report from accumulated JSONL (Jev p vs outcome)
 - [ ] Local-runner SaaS control plane (see repo discussion)

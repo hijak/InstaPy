@@ -22,5 +22,8 @@
   "jev": {
     "model": "jev-latest",
     "escalateBelowConfidence": 0.55
+  },
+  "breaker": {
+    "challengeCooldownHours": 48
   }
 }

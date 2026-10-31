@@ -112,3 +112,19 @@ try {
 console.log("RESULT:" + JSON.stringify({ closed, url: await page.url() }));
 `);
 }
+
+// Cheap screen-state brief for triage when something unexpected happened.
+export function pageBrief() {
+  return run(`${ENSURE}
+const brief = await page.evaluate(() => ({
+  url: location.href,
+  title: document.title,
+  hasLoginForm: !!document.querySelector('input[name="pass"]'),
+  hasDialog: !!document.querySelector('div[role="dialog"]'),
+  textSample: (document.body && document.body.innerText ? document.body.innerText : "")
+    .replace(/\\s+/g, " ")
+    .slice(0, 600),
+}));
+console.log("RESULT:" + JSON.stringify(brief));
+`);
+}
